@@ -1,22 +1,15 @@
-import stream  from 'stream';
-import { AsyncResource } from 'async_hooks';
+import stream from 'stream';
+import {AsyncResource} from 'async_hooks';
 import split from 'split2';
 import Pump from 'pumpify';
 import through from 'through2';
 import * as Sentry from '@sentry/node';
-import { Breadcrumb } from '@sentry/types';
+import {SeverityLevel} from "@sentry/node";
 
 type ValueOf<T> = T extends any[] ? T[number] : T[keyof T]
 
 export const SentryInstance = Sentry;
-class ExtendedError extends Error {
-  public constructor(info: any) {
-    super(info.message);
 
-    this.name = "Error";
-    this.stack = info.stack || null;
-  }
-}
 
 // Local enum declaration, as @sentry/node deprecated using enums over strings for bundle size
 export enum Severity {
@@ -31,7 +24,7 @@ export enum Severity {
   Critical = "critical",
 }
 
-const SEVERITIES_MAP = {
+export const SEVERITIES_MAP = {
   10: Severity.Debug,   // pino: trace
   20: Severity.Debug,   // pino: debug
   30: Severity.Info,    // pino: info
@@ -49,7 +42,7 @@ const SEVERITIES_MAP = {
 } as const;
 
 // How severe the Severity is
-const SeverityIota  = {
+const SeverityIota = {
   [Severity.Debug]: 1,
   [Severity.Log]: 2,
   [Severity.Info]: 3,
@@ -60,38 +53,71 @@ const SeverityIota  = {
 } as const;
 
 export interface PinoSentryOptions {
+  release?: string;
+  dist?: string;
+  maxBreadcrumbs?: number;
+  sampleRate?: number;
+  sentryInstance?: typeof Sentry;
+  debug?: boolean;
+  dsn?: string;
+  serverName?: string;
+  environment?: string;
   /** Minimum level for a log to be reported to Sentry from pino-sentry */
   level?: keyof typeof SeverityIota;
-  messageAttributeKey?: string;
-  extraAttributeKeys?: string[];
-  stackAttributeKey?: string;
   maxValueLength?: number;
   sentryExceptionLevels?: Severity[];
   decorateScope?: (data: Record<string, unknown>, _scope: Sentry.Scope) => void;
 }
 
-function get(data: any, path: string) {
-  return path.split('.').reduce((acc, part) => acc && acc[part], data);
+/**
+ * These contain the expected data coming from pino, and it's usage with the @thesparklaboratory/logger package
+ */
+type Chunk = {
+  [key: string]: unknown;
+  msg: string;
+  err: {
+    type: string;
+    message: string;
+    stack: string;
+  };
+  hostname: string;
+  level: keyof typeof SEVERITIES_MAP;
+  pid: number;
+  time: number;
+  category: string;
+  tags: Record<string, string | number | boolean>;
+};
+
+export type PinoSerializedError = { type: string; message: string; stack: string };
+
+interface ErrorWithMessageParams {
+  err?: PinoSerializedError;
+  msg: string;
+}
+
+export function createErrorWithMessage({err, msg}: ErrorWithMessageParams) {
+  const error = err ? new Error(`${msg}: ${err.message}`) : new Error(msg);
+  if (err) {
+    error.stack = err.stack;
+    error.name = err.type;
+  }
+  return error;
 }
 
 export class PinoSentryTransport {
   // Default minimum log level to `debug`
   minimumLogLevel: ValueOf<typeof SeverityIota> = SeverityIota[Severity.Debug];
-  messageAttributeKey = 'msg';
-  extraAttributeKeys = ['extra'];
-  stackAttributeKey = 'stack';
+
   maxValueLength = 250;
   sentryExceptionLevels = [Severity.Fatal, Severity.Error];
-  decorateScope = (_data: Record<string, unknown>, _scope: Sentry.Scope) => {/**/};
+  sentryInstance: typeof Sentry = Sentry;
 
-  
   public constructor(options?: PinoSentryOptions & Sentry.NodeOptions)
-  public constructor(options?: PinoSentryOptions, initializeSentry: false)
-  public constructor(options?: any, initializeSentry?: boolean = true) {
+  public constructor(options?: PinoSentryOptions) {
     const validatedOptions = this.validateOptions(options || {});
 
-    if (initializeSentry) {
-      Sentry.init(validatedOptions)
+    if (!options?.sentryInstance) {
+      Sentry.init(validatedOptions);
     }
   }
 
@@ -115,66 +141,33 @@ export class PinoSentryTransport {
     });
   }
 
-  private chunkInfoCallback(chunk: any, cb: any) {
-    const severity = this.getLogSeverity(chunk.level);
+  private chunkInfoCallback(chunk: Chunk, cb: any) {
+    const {
+      level,
+      msg,
+      category,
+      err,
+      tags = {},
+      ...restOfData
+    } = chunk;
+    const severity = this.getLogSeverity(level);
 
-    // Check if we send this Severity to Sentry
     if (!this.shouldLog(severity)) {
       setImmediate(cb);
       return;
     }
 
-    const tags = chunk.tags || {};
-    const breadcrumbs: Breadcrumb[] = chunk.breadcrumbs || {};
-
-    if (chunk.reqId) {
-      tags.uuid = chunk.reqId;
-    }
-
-    if (chunk.responseTime) {
-      tags.responseTime = chunk.responseTime;
-    }
-
-    if (chunk.hostname) {
-      tags.hostname = chunk.hostname;
-    }
-
-    const extra: any = {};
-    this.extraAttributeKeys.forEach((key: string) => {
-      const value = get(chunk, key);
-      if(value !== undefined) {
-        extra[key] = value;
-      }
-    });
-    const message: any & Error = get(chunk, this.messageAttributeKey);
-    const stack = get(chunk, this.stackAttributeKey) || '';
-
-    const scope = new Sentry.Scope();
-    this.decorateScope(chunk, scope);
-
-    scope.setLevel(severity as any);
-
-    if (this.isObject(tags)) {
-      Object.keys(tags).forEach(tag => scope.setTag(tag, tags[tag]));
-    }
-
-    if (this.isObject(extra)) {
-      Object.keys(extra).forEach(ext => scope.setExtra(ext, extra[ext]));
-    }
-
-    if (this.isObject(breadcrumbs)) {
-      Object.values(breadcrumbs).forEach(breadcrumb => scope.addBreadcrumb(breadcrumb));
-    }
-
-    // Capturing Errors / Exceptions
     if (this.isSentryException(severity)) {
-      const error = message instanceof Error ? message : new ExtendedError({ message, stack });
-
-      Sentry.captureException(error, scope);
+      const error = createErrorWithMessage({err: err, msg: msg});
+      Sentry.captureException(error, {extra: {...restOfData, category, error: err, msg}, tags});
       setImmediate(cb);
     } else {
-      // Capturing Messages
-      Sentry.captureMessage(message, scope);
+      Sentry.addBreadcrumb({
+        message: msg,
+        data: {...restOfData, error: err},
+        category,
+        level: severity as SeverityLevel
+      });
       setImmediate(cb);
     }
   }
@@ -182,27 +175,23 @@ export class PinoSentryTransport {
   private validateOptions(options: PinoSentryOptions): PinoSentryOptions {
     const dsn = options.dsn || process.env.SENTRY_DSN;
 
-    if (!dsn) {
-      console.log('Warning: [pino-sentry] Sentry DSN must be supplied, otherwise logs will not be reported. Pass via options or `SENTRY_DSN` environment variable.');
+    if (!options.sentryInstance && !dsn) {
+      console.log('Warning: [pino-sentry] Sentry DSN must be supplied if no sentryInstance is provided, otherwise logs will not be reported. Pass via options or `SENTRY_DSN` environment variable.');
     }
 
     if (options.level) {
       const allowedLevels = Object.keys(SeverityIota);
 
-      if (!allowedLevels.includes(options.level))  {
+      if (!allowedLevels.includes(options.level)) {
         throw new Error(`[pino-sentry] Option \`level\` must be one of: ${allowedLevels.join(', ')}. Received: ${options.level}`);
       }
-
       // Set minimum log level
       this.minimumLogLevel = SeverityIota[options.level];
     }
 
-    this.stackAttributeKey = options.stackAttributeKey ?? this.stackAttributeKey;
-    this.extraAttributeKeys = options.extraAttributeKeys ?? this.extraAttributeKeys;
-    this.messageAttributeKey = options.messageAttributeKey ?? this.messageAttributeKey;
+    this.sentryInstance = options.sentryInstance ?? Sentry;
     this.maxValueLength = options.maxValueLength ?? this.maxValueLength;
     this.sentryExceptionLevels = options.sentryExceptionLevels ?? this.sentryExceptionLevels;
-    this.decorateScope = options.decorateScope ?? this.decorateScope;
 
     return {
       dsn,
@@ -217,11 +206,6 @@ export class PinoSentryTransport {
     };
   }
 
-  private isObject(obj: any): boolean {
-    const type = typeof obj;
-    return type === 'function' || type === 'object' && !!obj;
-  }
-
   private isSentryException(level: Severity): boolean {
     return this.sentryExceptionLevels.includes(level);
   }
@@ -233,7 +217,7 @@ export class PinoSentryTransport {
 }
 
 class ChunkInfo extends AsyncResource {
-  constructor(private readonly chunk: any) {
+  constructor(private readonly chunk: Chunk) {
     super("ChunkInfo");
   }
 
