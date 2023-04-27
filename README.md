@@ -42,43 +42,26 @@ node ./app.js | pino-sentry --dsn=https://******@sentry.io/12345
 ### API
 
 ```js
-const { createWriteStream, Sentry } = require("pino-sentry");
+const {createWriteStream, Sentry} = require("pino-sentry");
 // ...
 const opts = {
   /* ... */
 };
-const stream = createWriteStream({ dsn: process.env.SENTRY_DSN });
+// Provide your own Sentry instance via the sentryInstance option or supply the Sentry DSN via the dsn option
+const stream = Sentry ? createWriteStream({sentryInstance: Sentry}) : createWriteStream({dsn: process.env.SENTRY_DSN});
 const logger = pino(opts, stream);
 
 // add tags
-logger.info({ tags: { foo: "bar" }, msg: "Error" });
+logger.info({tags: {foo: "bar"}, msg: "Error"});
 
-// add extra
-logger.info({ extra: { foo: "bar" }, msg: "Error" });
+// add category
+logger.info({tags: {foo: "bar"}, msg: "Error", category: "auth"});
 
-// add breadcrumbs
-// https://docs.sentry.io/platforms/node/enriching-events/breadcrumbs/
-logger.info({
-  msg: "Error",
-  breadcrumbs: [
-    {
-      category: "auth",
-      message: "Authenticated user " + user.email,
-      level: "info",
-    },
-  ],
-});
+// add error - The error will be sent to Sentry as an exception, appending the `msg` to the error message
+logger.error({msg: "Additional messge", err: new Error("An error")});
 
-// the sentry instance is exposed and can be used to manipulate the same sentry than pino-sentry
-Sentry.addBreadcrumb({
-  category: "custom-logger",
-  message: "Hey there!",
-  level: "debug",
-  type: "debug",
-  data: { some: "data" },
-});
+
 ```
-
 ## Options (`options`)
 
 ### Override Message Attributes
@@ -86,10 +69,7 @@ Sentry.addBreadcrumb({
 In case the generated message does not follow the standard convention, the main attribute keys can be mapped to different values, when the stream gets created. Following attribute keys can be overridden:
 
 - `msg` - the field used to get the message, it can be dot notted (eg 'data.msg')
-- `extra`
-- `stack` - the field used to get the stack, it can be dot notted (eg 'err.stack')
 - `maxValueLength` - option to adjust max string length for values, default is 250
-- `decorateScope` - option to decorate, manipulate the sentry scope just before the capture
 - `sentryExceptionLevels` - option that represent the levels that will be handled as exceptions. Default : `error` and `fatal`
 
 ```js
@@ -99,19 +79,16 @@ const opts = {
   /* ... */
 };
 const stream = createWriteStream({
+  // Providing the DSN will call Sentry.init() for you
   dsn: process.env.SENTRY_DSN,
-  messageAttributeKey: "message",
-  stackAttributeKey: "trace",
-  extraAttributeKeys: ["req", "context"],
+  // Alternatively you can provide your own Sentry instance
+  sentryInstance: Sentry,
   maxValueLength: 250,
   sentryExceptionLevels: [
     Severity.Warning,
     Severity.Error,
     Severity.Fatal,
   ],
-  decorateScope: (data, scope) => {
-    scope.setUser("userId", { id: data.userId });
-  },
 });
 const logger = pino(opts, stream);
 ```
