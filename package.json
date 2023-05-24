@@ -1,7 +1,7 @@
 {
-  "name": "pino-sentry",
+  "name": "@thesparklaboratory/pino-sentry",
+  "version": "1.0.0",
   "description": "@sentry/node transport for pino logger",
-  "author": "Andrew Avdeev <andrewww.avdeev@gmail.com>",
   "keywords": [
     "logger",
     "loggly",
