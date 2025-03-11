@@ -1,6 +1,6 @@
 {
   "name": "@thesparklaboratory/pino-sentry",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "@sentry/node transport for pino logger",
   "keywords": [
     "logger",
@@ -24,39 +24,45 @@
     "test": "jest",
     "prepublishOnly": "npm run lint && npm run build && npm run test"
   },
-  "repository": "https://github.com/aandrewww/pino-sentry.git",
+  "repository": "https://github.com/thesparklaboratory/pino-sentry.git",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/aandrewww/pino-sentry/issues"
+    "url": "https://github.com/thesparklaboratory/pino-sentry/issues"
   },
-  "homepage": "https://github.com/aandrewww/pino-sentry#readme",
+  "homepage": "https://github.com/thesparklaboratory/pino-sentry#readme",
   "engines": {
-    "node": ">=10"
+    "node": ">=20.0.0"
   },
   "dependencies": {
-    "commander": "^2.20.0",
+    "commander": "^13.1.0",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "jiti": "^2.4.2",
     "pumpify": "^2.0.1",
-    "split2": "^3.1.1",
-    "through2": "^3.0.1"
+    "split2": "^4.2.0",
+    "through2": "^4.0.2"
   },
   "devDependencies": {
-    "@jest/types": "^28.1.1",
-    "@types/jest": "^28.1.1",
-    "@types/node": "^12.6.9",
-    "@types/pino": "^6.3.12",
-    "@types/pumpify": "^1.4.1",
-    "@types/split2": "^2.1.6",
-    "@types/through2": "^2.0.34",
-    "@typescript-eslint/eslint-plugin": "^2.34.0",
-    "@typescript-eslint/parser": "^2.34.0",
-    "eslint": "^6.8.0",
-    "jest": "^28.1.1",
-    "pino": "^6.5.1",
-    "ts-jest": "^28.0.4",
-    "ts-node": "^10.8.1",
-    "typescript": "^4.7.3"
+    "@eslint/js": "^9.22.0",
+    "@jest/types": "^29.6.3",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.13.10",
+    "@types/pumpify": "^1.4.4",
+    "@types/split2": "^4.2.3",
+    "@types/through2": "^2.0.41",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "eslint": "^9.22.0",
+    "jest": "^29.7.0",
+    "pino": "^9.6.0",
+    "ts-jest": "^29.2.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.1"
   },
   "peerDependencies": {
-    "@sentry/node": ">=6.2.5"
-  }
+    "@sentry/node": "^8.55.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

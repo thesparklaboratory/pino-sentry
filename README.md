@@ -19,17 +19,8 @@ Load [pino](https://github.com/pinojs/pino) logs into [Sentry](https://sentry.io
 ## Install
 
 ```bash
-npm install pino-sentry -g
+npm install @thesparklaboratory/pino-sentry
 ```
-
-Note: The v7 version of the Sentry JavaScript SDK requires a self-hosted
-version of Sentry 20.6.0 or higher. If you are using a version of self-hosted
-Sentry (aka onpremise) older than 20.6.0 then you will need to upgrade. See
-[sentry-javascript@7.0.0] release notes.
-
-Alternatively you can pin `@sentry/*` packages to 6.x.
-
-[sentry-javascript@7.0.0]: https://github.com/getsentry/sentry-javascript/releases/tag/7.0.0
 
 ## Usage
 
@@ -42,7 +33,7 @@ node ./app.js | pino-sentry --dsn=https://******@sentry.io/12345
 ### API
 
 ```js
-const {createWriteStream, Sentry} = require("pino-sentry");
+import { createWriteStream, Sentry } from "@thesparklaboratory/pino-sentry";
 // ...
 const opts = {
   /* ... */
@@ -73,7 +64,7 @@ In case the generated message does not follow the standard convention, the main 
 - `sentryExceptionLevels` - option that represent the levels that will be handled as exceptions. Default : `error` and `fatal`
 
 ```js
-const { createWriteStream, Severity } = require("pino-sentry");
+import { createWriteStream, Severity } from "pino-sentry";
 // ...
 const opts = {
   /* ... */
