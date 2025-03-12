@@ -1,6 +1,6 @@
 {
   "name": "@thesparklaboratory/pino-sentry",
-  "version": "2.0.3",
+  "version": "2.0.5",
   "description": "@sentry/node transport for pino logger",
   "keywords": [
     "logger",
@@ -13,17 +13,20 @@
     "pino"
   ],
   "type": "module",
-  "main": "dist/index.mjs",
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "types": "dist/index.d.ts",
   "bin": {
-    "pino-sentry": "dist/cli.mjs"
+    "pino-sentry": "dist/cli.js"
   },
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsc -b tsconfig.build.json",
     "lint": "eslint src/**/*.ts",
-    "test": "jest",
-    "prepublishOnly": "npm run build && npm run test"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config=jest.config.mjs",
+    "prepublishOnly": "npm run clean && npm run build && npm run test"
   },
   "repository": "https://github.com/thesparklaboratory/pino-sentry.git",
   "license": "MIT",
@@ -57,6 +60,7 @@
     "eslint": "^9.22.0",
     "jest": "^29.7.0",
     "pino": "^9.6.0",
+    "sentry-testkit": "^6.1.0",
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2",

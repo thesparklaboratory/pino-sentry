@@ -1,39 +1,42 @@
 import {
   createErrorWithMessage,
   PinoSentryOptions,
-  PinoSentryTransport, PinoSerializedError,
+  PinoSentryTransport,
+  PinoSerializedError,
   SEVERITIES_MAP,
-  Severity
-} from "../src/transport";
+  Severity,
+} from "../src/transport.js";
 
-describe('PinoSentryTransport', () => {
-  describe('constructor', () => {
-    it('should create an instance with default values', () => {
-      const transport = new PinoSentryTransport({dsn: "mockDsn"});
+const fakeDsn = "https://123@123.ingest.sentry.io/123";
+
+describe("PinoSentryTransport", () => {
+  describe("constructor", () => {
+    it("should create an instance with default values", () => {
+      const transport = new PinoSentryTransport({ dsn: fakeDsn });
       expect(transport).toBeDefined();
     });
 
-    it('should create an instance with custom options', () => {
+    it("should create an instance with custom options", () => {
       const options: PinoSentryOptions = {
         level: Severity.Error,
-        dsn: "mockDsn"
+        dsn: fakeDsn,
       };
       const transport = new PinoSentryTransport(options);
       expect(transport.minimumLogLevel).toBe(5); // Error level
     });
   });
 
-  describe('getLogSeverity', () => {
-    it('should return the correct Severity based on level', () => {
-      const transport = new PinoSentryTransport({dsn: "mockDsn"});
+  describe("getLogSeverity", () => {
+    it("should return the correct Severity based on level", () => {
+      const transport = new PinoSentryTransport({ dsn: fakeDsn });
       const level = 50; // pino: error
       const severity = transport.getLogSeverity(level);
       expect(severity).toBe(Severity.Error);
     });
   });
 
-  describe('SEVERITIES_MAP', () => {
-    it('should have correct Severity values mapped to log levels', () => {
+  describe("SEVERITIES_MAP", () => {
+    it("should have correct Severity values mapped to log levels", () => {
       expect(SEVERITIES_MAP[10]).toBe(Severity.Debug);
       expect(SEVERITIES_MAP[20]).toBe(Severity.Debug);
       expect(SEVERITIES_MAP[30]).toBe(Severity.Info);
@@ -48,11 +51,11 @@ describe('PinoSentryTransport', () => {
       expect(SEVERITIES_MAP.fatal).toBe(Severity.Fatal);
     });
 
-    describe('shouldLog', () => {
-      it('should return true if severity is equal to or greater than minimumLogLevel', () => {
+    describe("shouldLog", () => {
+      it("should return true if severity is equal to or greater than minimumLogLevel", () => {
         const transport = new PinoSentryTransport({
           level: Severity.Error,
-          dsn: "mockDsn"
+          dsn: fakeDsn,
         });
 
         const shouldLogWarning = (transport as any).shouldLog(Severity.Warning);
@@ -64,8 +67,11 @@ describe('PinoSentryTransport', () => {
         expect(shouldLogFatal).toBe(true);
       });
 
-      it('should return false if severity is less than minimumLogLevel', () => {
-        const transport = new PinoSentryTransport({level: Severity.Error, dsn: "mockDsn"});
+      it("should return false if severity is less than minimumLogLevel", () => {
+        const transport = new PinoSentryTransport({
+          level: Severity.Error,
+          dsn: fakeDsn,
+        });
 
         const shouldLogInfo = (transport as any).shouldLog(Severity.Info);
         const shouldLogDebug = (transport as any).shouldLog(Severity.Debug);
@@ -75,42 +81,47 @@ describe('PinoSentryTransport', () => {
       });
     });
 
-
-    describe('createErrorWithMessage', () => {
-      it('should create a new error with the given message when err is undefined', () => {
-        const message = 'Test message';
-        const result = createErrorWithMessage({err: undefined, msg: message});
+    describe("createErrorWithMessage", () => {
+      it("should create a new error with the given message when err is undefined", () => {
+        const message = "Test message";
+        const result = createErrorWithMessage({ err: undefined, msg: message });
         expect(result).toBeInstanceOf(Error);
         expect(result.message).toEqual(message);
       });
 
-      it('should create a new error with the prefixed message when err is provided', () => {
+      it("should create a new error with the prefixed message when err is provided", () => {
         const originalError: PinoSerializedError = {
-          type: 'Error',
-          message: 'Original error message',
-          stack: 'Original stack trace',
+          type: "Error",
+          message: "Original error message",
+          stack: "Original stack trace",
         };
-        const prefixMessage = 'Prefix message';
+        const prefixMessage = "Prefix message";
 
-        const result = createErrorWithMessage({err: originalError, msg: prefixMessage});
+        const result = createErrorWithMessage({
+          err: originalError,
+          msg: prefixMessage,
+        });
         expect(result).toBeInstanceOf(Error);
-        expect(result.message).toEqual(`${prefixMessage}: ${originalError.message}`);
+        expect(result.message).toEqual(
+          `${prefixMessage}: ${originalError.message}`,
+        );
       });
 
-      it('should preserve the original error stack trace and type when err is provided', () => {
+      it("should preserve the original error stack trace and type when err is provided", () => {
         const originalError: PinoSerializedError = {
-          type: 'Error',
-          message: 'Original error message',
-          stack: 'Original stack trace',
+          type: "Error",
+          message: "Original error message",
+          stack: "Original stack trace",
         };
-        const prefixMessage = 'Prefix message';
+        const prefixMessage = "Prefix message";
 
-        const result = createErrorWithMessage({err: originalError, msg: prefixMessage});
+        const result = createErrorWithMessage({
+          err: originalError,
+          msg: prefixMessage,
+        });
         expect(result.stack).toEqual(originalError.stack);
         expect(result.name).toEqual(originalError.type);
       });
     });
   });
-
-
 });
