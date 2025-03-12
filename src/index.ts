@@ -4,4 +4,4 @@ export {
   SentryInstance as Sentry,
   PinoSentryOptions,
   Severity,
-} from "./transport";
+} from "./transport.js";

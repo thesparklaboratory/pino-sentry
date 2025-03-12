@@ -1,6 +1,6 @@
 {
   "name": "@thesparklaboratory/pino-sentry",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "@sentry/node transport for pino logger",
   "keywords": [
     "logger",
@@ -12,10 +12,11 @@
     "transport",
     "pino"
   ],
-  "main": "dist/index.js",
+  "type": "module",
+  "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "bin": {
-    "pino-sentry": "dist/cli.js"
+    "pino-sentry": "dist/cli.mjs"
   },
   "scripts": {
     "clean": "rm -rf dist",

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { program } from "commander";
-import { createWriteStream } from "./transport";
+import { createWriteStream } from "./transport.js";
 
 function main() {
   program
